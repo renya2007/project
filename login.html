@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Вход в личный кабинет | Клиентский портал</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="style2.css">
+    <link rel="stylesheet" href="static/style2.css">
     </style>
 </head>
 <body>
@@ -65,7 +65,7 @@
                     <a href="#" class="forgot-link" id="forgotPassword">Забыли пароль?</a>
                 </div>
  
-                <button type="submit" class="btn btn-primary" id="submitBtn">Войти</button>
+                <button type="submit" class="btn btn-primary" onclick="window.location.href='cab.html'" id="submitBtn">Войти</button>
             </form>
  
             <div class="divider">
@@ -73,7 +73,7 @@
             </div>
  
             <div class="social-buttons">
-                <button class="social-btn" onclick="socialLogin('google')">
+                <button class="social-btn" onclick="window.location.href='https://accounts.google.com/v3/signin/identifier?authuser=0&continue=https%3A%2F%2Fmyaccount.google.com%2F%3Futm_source%3Dsign_in_no_continue%26pli%3D1&ec=GAlAwAE&hl=ru&service=accountsettings&flowName=GlifWebSignIn&flowEntry=AddSession&dsh=S1762112746%3A1775219958734881'" onclick="socialLogin('google')">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                         <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -82,7 +82,7 @@
                     </svg>
                     Google
                 </button>
-                <button class="social-btn" onclick="socialLogin('facebook')">
+                <button class="social-btn" onclick="window.location.href='https://www.facebook.com/?locale=ru_RU'" onclick="socialLogin('facebook')">
                     <svg fill="currentColor" viewBox="0 0 24 24">
                         <path d="M24 12.07C24 5.41 18.63 0 12 0S0 5.41 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.96h-1.51c-1.49 0-1.95.93-1.95 1.88v2.26h3.32l-.53 3.49h-2.79V24C19.61 23.1 24 18.1 24 12.07z"/>
                     </svg>
@@ -92,7 +92,7 @@
  
             <div class="register-link">
                 Нет аккаунта?
-                <a href="#" id="registerLink">Зарегистрироваться</a>
+                <a href="registr.html" id="registerLink">Зарегистрироваться</a>
             </div>
         </div>
     </div>
@@ -219,7 +219,7 @@
             e.preventDefault();
             showMessage('Переход на страницу регистрации...', 'success');
             setTimeout(() => {
-                window.location.href = '/register'; // Замените на реальный URL
+                window.location.href = 'registr.html'; // Замените на реальный URL
             }, 1000);
         });
         

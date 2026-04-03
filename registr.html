@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация | Клиентский портал</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #183675 0%, #006eff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 480px;
+            width: 100%;
+        }
+        .auth-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 32px;
+            padding: 48px 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        h1 {
+            font-size: 28px;
+            text-align: center;
+            margin-bottom: 32px;
+            color: #1a202c;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        input:focus {
+            outline: none;
+            border-color: #4265ff;
+        }
+        input.error {
+            border-color: #e53e3e;
+        }
+        input.success {
+            border-color: #48bb78;
+        }
+        
+        /* Стили для поля с глазком */
+        .password-wrapper {
+            position: relative;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 0;
+            z-index: 2;
+        }
+        .toggle-password svg {
+            width: 20px;
+            height: 20px;
+            color: #cbd5e0;
+            transition: color 0.3s;
+        }
+        .toggle-password:hover svg {
+            color: #667eea;
+        }
+        
+        /* Подсказка под полем */
+        .field-hint {
+            font-size: 12px;
+            margin-top: 6px;
+            margin-left: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .field-hint.error-hint {
+            color: #e53e3e;
+        }
+        .field-hint.success-hint {
+            color: #48bb78;
+        }
+        .field-hint.info-hint {
+            color: #718096;
+        }
+        
+        /* Индикатор сложности пароля */
+        .password-strength {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .strength-bar {
+            flex: 1;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+        .strength-bar.active.weak {
+            background: #e53e3e;
+        }
+        .strength-bar.active.medium {
+            background: #ed8936;
+        }
+        .strength-bar.active.strong {
+            background: #48bb78;
+        }
+        .strength-text {
+            font-size: 12px;
+            margin-top: 4px;
+            color: #718096;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #004cff 0%, #113cff 100%);
+            color: white;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px #006eff66;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .login-link {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 14px;
+        }
+        .login-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+        .message {
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .message.show {
+            display: block;
+        }
+        .message.error {
+            background: #fed7d7;
+            color: #c53030;
+        }
+        .message.success {
+            background: #c6f6d5;
+            color: #276749;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="auth-card">
+            <h1>Создать аккаунт</h1>
+            <div id="messageContainer"></div>
+            <form id="registerForm" action="register.php" method="POST">
+                <div class="form-group">
+                    <input type="email" name="email" id="email" placeholder="Электронная почта" required>
+                    <div class="field-hint info-hint" id="emailHint">Введите действующий email</div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="password-wrapper">
+                        <input type="password" name="password" id="password" placeholder="Пароль" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword('password')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="password-strength" id="strengthBars">
+                        <div class="strength-bar"></div>
+                        <div class="strength-bar"></div>
+                        <div class="strength-bar"></div>
+                    </div>
+                    <div class="strength-text" id="strengthText"></div>
+                    <div class="field-hint info-hint" id="passwordHint">Пароль должен содержать минимум 8 символов</div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="password-wrapper">
+                        <input type="password" name="confirm_password" id="confirmPassword" placeholder="Подтвердите пароль" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword('confirmPassword')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="field-hint info-hint" id="confirmHint">Повторите пароль</div>
+                </div>
+                
+                <button type="submit" class="btn" id="submitBtn">Зарегистрироваться</button>
+            </form>
+            <div class="login-link">
+                Уже есть аккаунт? <a href="login.html">Войти</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Функция переключения видимости пароля (глазок)
+        function togglePassword(fieldId) {
+            const passwordInput = document.getElementById(fieldId);
+            const toggleBtn = passwordInput.parentElement.querySelector('.toggle-password');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleBtn.innerHTML = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>`;
+            } else {
+                passwordInput.type = 'password';
+                toggleBtn.innerHTML = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>`;
+            }
+        }
+        
+        // Функция проверки сложности пароля
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+            if (password.match(/\d/)) strength++;
+            if (password.match(/[^a-zA-Z\d]/)) strength++;
+            
+            if (password.length === 0) return { level: 0, text: '', class: '' };
+            if (strength <= 1) return { level: 1, text: 'Слабый', class: 'weak' };
+            if (strength === 2) return { level: 2, text: 'Средний', class: 'medium' };
+            return { level: 3, text: 'Надежный', class: 'strong' };
+        }
+        
+        // Обновление индикатора сложности пароля
+        function updatePasswordStrength() {
+            const password = document.getElementById('password').value;
+            const strength = checkPasswordStrength(password);
+            const bars = document.querySelectorAll('.strength-bar');
+            const strengthText = document.getElementById('strengthText');
+            
+            bars.forEach((bar, index) => {
+                bar.classList.remove('active', 'weak', 'medium', 'strong');
+                if (index < strength.level) {
+                    bar.classList.add('active', strength.class);
+                }
+            });
+            
+            if (strength.level > 0) {
+                strengthText.textContent = `Сложность пароля: ${strength.text}`;
+                strengthText.style.color = strength.class === 'weak' ? '#e53e3e' : 
+                                          strength.class === 'medium' ? '#ed8936' : '#48bb78';
+            } else {
+                strengthText.textContent = '';
+            }
+            
+            // Проверка длины пароля
+            const passwordHint = document.getElementById('passwordHint');
+            if (password.length > 0 && password.length < 8) {
+                passwordHint.innerHTML = '❌ Пароль должен содержать минимум 8 символов';
+                passwordHint.className = 'field-hint error-hint';
+                document.getElementById('password').classList.add('error');
+                document.getElementById('password').classList.remove('success');
+            } else if (password.length >= 8) {
+                passwordHint.innerHTML = '✅ Пароль содержит 8+ символов';
+                passwordHint.className = 'field-hint success-hint';
+                document.getElementById('password').classList.remove('error');
+                document.getElementById('password').classList.add('success');
+            } else {
+                passwordHint.innerHTML = 'Пароль должен содержать минимум 8 символов';
+                passwordHint.className = 'field-hint info-hint';
+                document.getElementById('password').classList.remove('error', 'success');
+            }
+        }
+        
+        // Проверка совпадения паролей
+        function checkPasswordsMatch() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const confirmHint = document.getElementById('confirmHint');
+            const confirmField = document.getElementById('confirmPassword');
+            
+            if (confirmPassword.length === 0) {
+                confirmHint.innerHTML = 'Повторите пароль';
+                confirmHint.className = 'field-hint info-hint';
+                confirmField.classList.remove('error', 'success');
+                return false;
+            }
+            
+            if (password !== confirmPassword) {
+                confirmHint.innerHTML = '❌ Пароли не совпадают';
+                confirmHint.className = 'field-hint error-hint';
+                confirmField.classList.add('error');
+                confirmField.classList.remove('success');
+                return false;
+            } else {
+                confirmHint.innerHTML = '✅ Пароли совпадают';
+                confirmHint.className = 'field-hint success-hint';
+                confirmField.classList.remove('error');
+                confirmField.classList.add('success');
+                return true;
+            }
+        }
+        
+        // Проверка email
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+        
+        function validateEmail() {
+            const email = document.getElementById('email').value;
+            const emailHint = document.getElementById('emailHint');
+            const emailField = document.getElementById('email');
+            
+            if (email.length === 0) {
+                emailHint.innerHTML = 'Введите действующий email';
+                emailHint.className = 'field-hint info-hint';
+                emailField.classList.remove('error', 'success');
+                return false;
+            }
+            
+            if (!isValidEmail(email)) {
+                emailHint.innerHTML = '❌ Введите корректный email адрес';
+                emailHint.className = 'field-hint error-hint';
+                emailField.classList.add('error');
+                emailField.classList.remove('success');
+                return false;
+            } else {
+                emailHint.innerHTML = '✅ Email введен верно';
+                emailHint.className = 'field-hint success-hint';
+                emailField.classList.remove('error');
+                emailField.classList.add('success');
+                return true;
+            }
+        }
+        
+        // Показ сообщений
+        function showMessage(message, type = 'error') {
+            const container = document.getElementById('messageContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type} show`;
+            messageDiv.textContent = message;
+            
+            const existingMessages = container.querySelectorAll('.message');
+            existingMessages.forEach(msg => msg.remove());
+            
+            container.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.classList.remove('show');
+                setTimeout(() => messageDiv.remove(), 300);
+            }, 5000);
+        }
+        
+        // Валидация формы перед отправкой
+        function validateForm() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (!email || !password || !confirmPassword) {
+                showMessage('Пожалуйста, заполните все поля', 'error');
+                return false;
+            }
+            
+            if (!isValidEmail(email)) {
+                showMessage('Введите корректный email адрес', 'error');
+                return false;
+            }
+            
+            if (password.length < 8) {
+                showMessage('Пароль должен содержать минимум 8 символов', 'error');
+                return false;
+            }
+            
+            if (password !== confirmPassword) {
+                showMessage('Пароли не совпадают', 'error');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // Обработка отправки формы
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            if (!validateForm()) {
+                e.preventDefault();
+            }
+        });
+        
+        // Обработка параметров URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        const success = urlParams.get('success');
+        
+        if (error) {
+            showMessage(decodeURIComponent(error), 'error');
+        }
+        if (success) {
+            showMessage(decodeURIComponent(success), 'success');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+        }
+        
+        // Добавляем обработчики событий для валидации в реальном времени
+        document.getElementById('email').addEventListener('input', validateEmail);
+        document.getElementById('email').addEventListener('blur', validateEmail);
+        
+        document.getElementById('password').addEventListener('input', function() {
+            updatePasswordStrength();
+            checkPasswordsMatch();
+        });
+        
+        document.getElementById('confirmPassword').addEventListener('input', checkPasswordsMatch);
+        document.getElementById('confirmPassword').addEventListener('blur', checkPasswordsMatch);
+    </script>
+</body>
+</html>

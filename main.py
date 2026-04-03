@@ -13,11 +13,19 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 def read_root():
     return FileResponse("index.html")
 
-@app.get("/reg.html")
+@app.get("/login.html")
 def about():
-    return FileResponse("reg.html")
+    return FileResponse("login.html")
 
-@app.get("/index.html")
+@app.get("/")
+def about():
+    return FileResponse("index2.html")
+
+@app.get("/registr.html")
+def about():
+    return FileResponse("registr.html")
+
+@app.get("/cab.html")
 def about():
     return FileResponse("cab.html")
 
