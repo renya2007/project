@@ -1,8 +1,351 @@
 (function() {
-            "use strict";
+            // Хранилище
+            const STORAGE_USERS = 'tega_users';
+            const STORAGE_CURRENT_USER = 'tega_current_user';
 
-            // ---------- ДАННЫЕ КВАРТИР (как в верстке) ----------
-            // Для удобства заполняем все карточки через js, сохраняя исходную информацию
+            function getUsers() {
+                const users = localStorage.getItem(STORAGE_USERS);
+                return users ? JSON.parse(users) : [];
+            }
+
+            function saveUsers(users) {
+                localStorage.setItem(STORAGE_USERS, JSON.stringify(users));
+            }
+
+            function getCurrentUser() {
+                const user = localStorage.getItem(STORAGE_CURRENT_USER);
+                return user ? JSON.parse(user) : null;
+            }
+
+            function setCurrentUser(user) {
+                if (user) {
+                    localStorage.setItem(STORAGE_CURRENT_USER, JSON.stringify(user));
+                } else {
+                    localStorage.removeItem(STORAGE_CURRENT_USER);
+                }
+            }
+
+            // Демо-пользователи
+            function initDemoUsers() {
+                let users = getUsers();
+                if (users.length === 0) {
+                    users = [
+                        { username: 'Алексей', email: 'alex@tega.ru', password: '123456' },
+                        { username: 'Мария', email: 'maria@tega.ru', password: '123456' },
+                        { username: 'Дмитрий', email: 'dima@tega.ru', password: '123456' }
+                    ];
+                    saveUsers(users);
+                }
+            }
+
+            // Модальное окно авторизации
+            let authModal = null;
+
+            function showAuthModal() {
+                if (authModal) return;
+
+                const modalHtml = `
+                    <div id="authModal" class="auth-modal-overlay">
+                        <div class="auth-modal">
+                            <div class="auth-tabs">
+                                <div class="auth-tab active" data-tab="login">Вход</div>
+                                <div class="auth-tab" data-tab="register">Регистрация</div>
+                                <div class="auth-tab" data-tab="forgot">Восстановление</div>
+                            </div>
+
+                            <!-- Форма входа -->
+                            <div id="loginForm" class="auth-form active-form">
+                                <h2>🔐 Вход</h2>
+                                <div class="sub">Войдите в свой аккаунт</div>
+                                <input type="text" id="loginEmail" placeholder="Email или имя пользователя">
+                                <input type="password" id="loginPassword" placeholder="Пароль">
+                                <div id="loginError" class="error-msg"></div>
+                                <button id="doLogin">Войти</button>
+                            </div>
+
+                            <!-- Форма регистрации -->
+                            <div id="registerForm" class="auth-form">
+                                <h2>📝 Регистрация</h2>
+                                <div class="sub">Создайте новый аккаунт</div>
+                                <input type="text" id="regUsername" placeholder="Имя пользователя">
+                                <input type="email" id="regEmail" placeholder="Email">
+                                <input type="password" id="regPassword" placeholder="Пароль (мин. 6 символов)">
+                                <input type="password" id="regConfirmPassword" placeholder="Подтвердите пароль">
+                                <div id="regError" class="error-msg"></div>
+                                <div id="regSuccess" class="success-msg"></div>
+                                <button id="doRegister">Зарегистрироваться</button>
+                            </div>
+
+                            <!-- Форма восстановления -->
+                            <div id="forgotForm" class="auth-form">
+                                <h2>🔄 Восстановление</h2>
+                                <div class="sub">Введите email для сброса пароля</div>
+                                <input type="email" id="forgotEmail" placeholder="Ваш email">
+                                <div id="forgotError" class="error-msg"></div>
+                                <div id="forgotSuccess" class="success-msg"></div>
+                                <button id="doForgot">Отправить код</button>
+                            </div>
+
+                            <button class="close-auth" id="closeAuthModal">Закрыть</button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                authModal = document.getElementById('authModal');
+
+                // Переключение вкладок
+                const tabs = document.querySelectorAll('.auth-tab');
+                const forms = {
+                    login: document.getElementById('loginForm'),
+                    register: document.getElementById('registerForm'),
+                    forgot: document.getElementById('forgotForm')
+                };
+
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const tabName = tab.getAttribute('data-tab');
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        Object.values(forms).forEach(f => f.classList.remove('active-form'));
+                        forms[tabName].classList.add('active-form');
+                        // Очищаем ошибки
+                        document.querySelectorAll('.error-msg, .success-msg').forEach(el => {
+                            el.style.display = 'none';
+                            el.textContent = '';
+                        });
+                    });
+                });
+
+                // Логин
+                document.getElementById('doLogin').addEventListener('click', () => {
+                    const loginInput = document.getElementById('loginEmail').value.trim();
+                    const password = document.getElementById('loginPassword').value;
+                    const errorDiv = document.getElementById('loginError');
+
+                    const users = getUsers();
+                    const user = users.find(u => u.email === loginInput || u.username === loginInput);
+
+                    if (!user) {
+                        errorDiv.textContent = '❌ Пользователь не найден';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+                    if (user.password !== password) {
+                        errorDiv.textContent = '❌ Неверный пароль';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+
+                    setCurrentUser({ username: user.username, email: user.email });
+                    updateAuthUI();
+                    closeAuthModal();
+                    alert(`✅ Добро пожаловать, ${user.username}!`);
+                });
+
+                // Регистрация
+                document.getElementById('doRegister').addEventListener('click', () => {
+                    const username = document.getElementById('regUsername').value.trim();
+                    const email = document.getElementById('regEmail').value.trim();
+                    const password = document.getElementById('regPassword').value;
+                    const confirm = document.getElementById('regConfirmPassword').value;
+                    const errorDiv = document.getElementById('regError');
+                    const successDiv = document.getElementById('regSuccess');
+
+                    errorDiv.style.display = 'none';
+                    successDiv.style.display = 'none';
+
+                    if (!username || !email || !password) {
+                        errorDiv.textContent = '❌ Заполните все поля';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+                    if (password.length < 6) {
+                        errorDiv.textContent = '❌ Пароль должен быть не менее 6 символов';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+                    if (password !== confirm) {
+                        errorDiv.textContent = '❌ Пароли не совпадают';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+                    if (!email.includes('@')) {
+                        errorDiv.textContent = '❌ Введите корректный email';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+
+                    const users = getUsers();
+                    if (users.some(u => u.email === email)) {
+                        errorDiv.textContent = '❌ Email уже зарегистрирован';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+                    if (users.some(u => u.username === username)) {
+                        errorDiv.textContent = '❌ Имя пользователя уже занято';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+
+                    users.push({ username, email, password });
+                    saveUsers(users);
+
+                    successDiv.textContent = '✅ Регистрация успешна! Теперь войдите';
+                    successDiv.style.display = 'block';
+
+                    // Очищаем поля
+                    document.getElementById('regUsername').value = '';
+                    document.getElementById('regEmail').value = '';
+                    document.getElementById('regPassword').value = '';
+                    document.getElementById('regConfirmPassword').value = '';
+
+                    // Переключаем на вкладку входа через 1.5 секунды
+                    setTimeout(() => {
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tabs[0].classList.add('active');
+                        Object.values(forms).forEach(f => f.classList.remove('active-form'));
+                        forms.login.classList.add('active-form');
+                        errorDiv.style.display = 'none';
+                        successDiv.style.display = 'none';
+                    }, 1500);
+                });
+
+                // Восстановление пароля
+                document.getElementById('doForgot').addEventListener('click', () => {
+                    const email = document.getElementById('forgotEmail').value.trim();
+                    const errorDiv = document.getElementById('forgotError');
+                    const successDiv = document.getElementById('forgotSuccess');
+
+                    errorDiv.style.display = 'none';
+                    successDiv.style.display = 'none';
+
+                    if (!email) {
+                        errorDiv.textContent = '❌ Введите email';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+
+                    const users = getUsers();
+                    const userIndex = users.findIndex(u => u.email === email);
+
+                    if (userIndex === -1) {
+                        errorDiv.textContent = '❌ Пользователь с таким email не найден';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+
+                    // Генерация кода
+                    const resetCode = Math.floor(100000 + Math.random() * 900000);
+                    const newPassword = prompt(`🔐 Код подтверждения: ${resetCode}\n\nВведите новый пароль (минимум 6 символов):`);
+
+                    if (!newPassword) {
+                        errorDiv.textContent = '❌ Операция отменена';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+
+                    if (newPassword.length < 6) {
+                        errorDiv.textContent = '❌ Пароль должен быть не менее 6 символов';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+
+                    users[userIndex].password = newPassword;
+                    saveUsers(users);
+
+                    successDiv.textContent = '✅ Пароль успешно изменен! Теперь войдите с новым паролем.';
+                    successDiv.style.display = 'block';
+
+                    document.getElementById('forgotEmail').value = '';
+
+                    // Переключаем на вход
+                    setTimeout(() => {
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tabs[0].classList.add('active');
+                        Object.values(forms).forEach(f => f.classList.remove('active-form'));
+                        forms.login.classList.add('active-form');
+                        errorDiv.style.display = 'none';
+                        successDiv.style.display = 'none';
+                    }, 2000);
+                });
+
+                document.getElementById('closeAuthModal').addEventListener('click', closeAuthModal);
+                authModal.addEventListener('click', (e) => {
+                    if (e.target === authModal) closeAuthModal();
+                });
+            }
+
+            function closeAuthModal() {
+                if (authModal) {
+                    authModal.remove();
+                    authModal = null;
+                }
+            }
+
+            function logout() {
+                setCurrentUser(null);
+                updateAuthUI();
+                alert('👋 Вы вышли из аккаунта');
+            }
+
+            function updateAuthUI() {
+                const container = document.getElementById('authButtonContainer');
+                const currentUser = getCurrentUser();
+
+                if (currentUser) {
+                    container.innerHTML = `
+                        <div class="auth-button" id="userMenuBtn">
+                            <i class="fas fa-user-circle"></i> ${currentUser.username}
+                        </div>
+                        <div class="user-menu" id="userDropdownMenu">
+                            <div class="user-info">
+                                <div class="user-name">${currentUser.username}</div>
+                                <div class="user-email">${currentUser.email}</div>
+                            </div>
+                            <button class="menu-item logout-item" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i> Выйти
+                            </button>
+                        </div>
+                    `;
+
+                    const userMenuBtn = document.getElementById('userMenuBtn');
+                    const dropdown = document.getElementById('userDropdownMenu');
+                    const logoutBtn = document.getElementById('logoutBtn');
+
+                    if (userMenuBtn) {
+                        userMenuBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            dropdown.classList.toggle('show');
+                        });
+                    }
+
+                    if (logoutBtn) {
+                        logoutBtn.addEventListener('click', () => {
+                            logout();
+                            dropdown.classList.remove('show');
+                        });
+                    }
+
+                    document.addEventListener('click', function closeMenu(e) {
+                        if (userMenuBtn && !userMenuBtn.contains(e.target) && dropdown && !dropdown.contains(e.target)) {
+                            dropdown.classList.remove('show');
+                        }
+                    });
+                } else {
+                    container.innerHTML = `
+                        <div class="auth-button" id="loginBtn">
+                            <i class="fas fa-sign-in-alt"></i> Войти
+                        </div>
+                    `;
+                    const loginBtn = document.getElementById('loginBtn');
+                    if (loginBtn) {
+                        loginBtn.addEventListener('click', showAuthModal);
+                    }
+                }
+            }
+
+            // Данные квартир
             const buyApartments = [
                 { price: '20 500 000 ₽', desc: '2-комн. кв. · 60 м² · 8/8 этаж', address: 'Нововладыкинский проезд, 1к2', img: 'https://a0.muscache.com/im/pictures/f50d118f-2525-4841-9bb1-7396132b7037.jpg' },
                 { price: '15 000 000 ₽', desc: '2-комн. кв. · 52,30 м² · 4/12 этаж', address: 'Звездный бул., 1', img: 'https://avatars.mds.yandex.net/i?id=ded801e12077bd8d06db148cc59bad06_l-5287379-images-thumbs&n=13' },
@@ -30,144 +373,93 @@
                 { price: '26 364 000 ₽', desc: '1-комн. кв. · 34,70 м² · 1/8 этаж', address: 'с. Можайск, Московская обл.', img: 'https://f4.mirkvartir.me/journal/custom/be1c774d-cd3c-43ed-bbfa-54d5bcf4257e.jpg' }
             ];
 
-            // Функция создания DOM-карточки (возвращает элемент)
             function createCard(apt) {
                 const div = document.createElement('div');
                 div.className = 'portfolio-item';
                 div.setAttribute('data-price', apt.price);
                 div.setAttribute('data-desc', apt.desc);
                 div.setAttribute('data-address', apt.address);
-                
-                const img = document.createElement('img');
-                img.src = apt.img;
-                img.alt = 'квартира';
-                img.style.height = '180px';
-                
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'portfolio-info';
-                
-                const priceEl = document.createElement('h5');
-                priceEl.textContent = apt.price;
-                const descEl = document.createElement('p');
-                descEl.innerHTML = apt.desc + '<br>' + apt.address;
-                
-                infoDiv.appendChild(priceEl);
-                infoDiv.appendChild(descEl);
-                div.appendChild(img);
-                div.appendChild(infoDiv);
-                
+                div.innerHTML = `
+                    <img src="${apt.img}" alt="квартира" style="height:180px; width:100%; object-fit:cover;">
+                    <div class="portfolio-info">
+                        <h5>${apt.price}</h5>
+                        <p>${apt.desc}<br>${apt.address}</p>
+                    </div>
+                `;
                 return div;
             }
 
-            // Рендерим сетки
-            const buyGrid = document.getElementById('buyGrid');
-            const rentGrid = document.getElementById('rentGrid');
-            const suburbanGrid = document.getElementById('suburbanGrid');
-            
-            buyApartments.forEach(a => buyGrid.appendChild(createCard(a)));
-            rentApartments.forEach(a => rentGrid.appendChild(createCard(a)));
-            suburbanApartments.forEach(a => suburbanGrid.appendChild(createCard(a)));
+            document.getElementById('buyGrid').append(...buyApartments.map(createCard));
+            document.getElementById('rentGrid').append(...rentApartments.map(createCard));
+            document.getElementById('suburbanGrid').append(...suburbanApartments.map(createCard));
 
-            // ---------- МОДАЛЬНОЕ ОКНО ----------
+            // Модальное окно квартир
             const modal = document.getElementById('apartmentModal');
             const modalPrice = document.getElementById('modalPrice');
-            const modalAddressSpan = document.querySelector('#modalAddress span');
+            const modalAddressText = document.getElementById('modalAddressText');
             const modalRooms = document.getElementById('modalRooms');
             const modalArea = document.getElementById('modalArea');
             const modalFloor = document.getElementById('modalFloor');
-            
             const telegramLink = document.getElementById('telegramLink');
             const whatsappLink = document.getElementById('whatsappLink');
             const callLink = document.getElementById('callLink');
             const emailLink = document.getElementById('emailLink');
-            const closeBtn = document.getElementById('closeModalBtn');
+            const closeModalBtn = document.getElementById('closeModalBtn');
 
-            // Парсим строку описания, чтобы извлечь комнатность/площадь/этаж
-            function parseDesc(descStr) {
-                // descStr пример: "2-комн. кв. · 60 м² · 8/8 этаж" или "Дом · 43 м²"
-                let rooms = '–', area = '–', floor = '–';
-                if (!descStr) return { rooms, area, floor };
-                
-                const parts = descStr.split('·').map(s => s.trim());
-                if (parts.length >= 1) rooms = parts[0];
-                if (parts.length >= 2) area = parts[1];
-                if (parts.length >= 3) floor = parts[2];
-                else floor = '—';
-                
-                return { rooms, area, floor };
+            function parseDesc(desc) {
+                const parts = desc.split('·').map(s => s.trim());
+                return {
+                    rooms: parts[0] || '—',
+                    area: parts[1] || '—',
+                    floor: parts[2] || '—'
+                };
             }
 
-            // Функция генерации контактов на основе адреса (для демо)
-            function updateContactLinks(address, price) {
-                // Пример: создаём ссылки с упоминанием адреса
-                const message = encodeURIComponent(`Здравствуйте! Интересует квартира по адресу: ${address}, цена ${price}.`);
-                const phoneNumber = '+74951234567'; // условный номер офиса
-                
-                telegramLink.href = `https://t.me/TegaSalesBot?text=${message}`;
-                whatsappLink.href = `https://wa.me/74951234567?text=${message}`;
-                callLink.href = `tel:${phoneNumber}`;
-                emailLink.href = `mailto:sales@tega.ru?subject=Запрос по квартире ${address}&body=${message}`;
-            }
-
-            // Открыть модалку с данными карточки
-            function openModal(cardElement) {
-                const price = cardElement.getAttribute('data-price') || 'Цена по запросу';
-                const desc = cardElement.getAttribute('data-desc') || '';
-                const address = cardElement.getAttribute('data-address') || 'Москва';
-                
+            function openApartmentModal(card) {
+                const price = card.dataset.price;
+                const desc = card.dataset.desc;
+                const address = card.dataset.address;
                 const { rooms, area, floor } = parseDesc(desc);
-                
+
                 modalPrice.textContent = price;
-                modalAddressSpan.textContent = address;
+                modalAddressText.textContent = address;
                 modalRooms.textContent = rooms;
                 modalArea.textContent = area;
                 modalFloor.textContent = floor;
-                
-                updateContactLinks(address, price);
-                
+
+                const message = encodeURIComponent(`Здравствуйте! Интересует квартира: ${address}, ${price}`);
+                telegramLink.href = `https://t.me/TegaSalesBot?text=${message}`;
+                whatsappLink.href = `https://wa.me/74951234567?text=${message}`;
+                callLink.href = `tel:+74951234567`;
+                emailLink.href = `mailto:sales@tega.ru?subject=Запрос по квартире&body=${message}`;
+
                 modal.classList.add('active');
                 document.body.style.overflow = 'hidden';
             }
 
-            function closeModal() {
+            function closeApartmentModal() {
                 modal.classList.remove('active');
                 document.body.style.overflow = '';
             }
 
-            // Обработчик клика на любую карточку (делегирование)
-            document.addEventListener('click', function(e) {
+            document.addEventListener('click', (e) => {
                 const card = e.target.closest('.portfolio-item');
-                if (!card) return;
-                // не открываем если клик был по ссылке внутри (на всякий)
-                if (e.target.closest('a')) return;
-                
-                openModal(card);
+                if (card) openApartmentModal(card);
             });
 
-            // Закрытие
-            closeBtn.addEventListener('click', closeModal);
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) closeModal(); // клик по оверлею
-            });
-            
-            // Escape
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && modal.classList.contains('active')) {
-                    closeModal();
-                }
-            });
+            closeModalBtn.addEventListener('click', closeApartmentModal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeApartmentModal(); });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('active')) closeApartmentModal(); });
 
-            // ---------- ПЛАВНЫЙ СКРОЛЛ (навигация) ----------
-            const navLinks = document.querySelectorAll('.navbar a');
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
+            // Плавный скролл
+            document.querySelectorAll('.navbar a').forEach(link => {
+                link.addEventListener('click', (e) => {
                     e.preventDefault();
-                    const targetId = this.getAttribute('href').substring(1);
-                    const targetSection = document.getElementById(targetId);
-                    if (targetSection) {
-                        targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
+                    const target = document.querySelector(link.getAttribute('href'));
+                    if (target) target.scrollIntoView({ behavior: 'smooth' });
                 });
             });
 
+            initDemoUsers();
+            updateAuthUI();
         })();
