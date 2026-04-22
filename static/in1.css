@@ -30,7 +30,7 @@
         }
         .custom-button {
             position: absolute;
-            top: 1.5rem;
+            top: 0.4rem;
             right: 2rem;
             background: rgba(255,255,255,0.12);
             backdrop-filter: blur(4px);
